@@ -87,7 +87,7 @@ RUBY_INSTALL_GEMS ?= "${BPN}-${BPV}.gem"
 RUBY_COMPILE_FLAGS ?= 'LANG="en_US.UTF-8" LC_ALL="en_US.UTF-8"'
 
 ruby_gen_extconf_fix() {
-	cat<<EOF>append
+	cat<<EOF>prepend
   RbConfig::MAKEFILE_CONFIG['CPPFLAGS'] = ENV['CPPFLAGS'] if ENV['CPPFLAGS']
   \$CPPFLAGS = ENV['CPPFLAGS'] if ENV['CPPFLAGS']
   RbConfig::MAKEFILE_CONFIG['CC'] = ENV['CC'] if ENV['CC']
@@ -95,7 +95,6 @@ ruby_gen_extconf_fix() {
   RbConfig::MAKEFILE_CONFIG['CFLAGS'] = ENV['CFLAGS'] if ENV['CFLAGS']
   RbConfig::MAKEFILE_CONFIG['CXXFLAGS'] = ENV['CXXFLAGS'] if ENV['CXXFLAGS']
 EOF
-	cat append2>>append
 	sysroot_ruby=${STAGING_INCDIR}/ruby-${RUBY_GEM_VERSION}
 	ruby_arch=`ls -1 ${sysroot_ruby} |grep -v ruby |tail -1 2> /dev/null`
 	cat<<EOF>>append
@@ -116,6 +115,13 @@ rubygems_do_compile() {
       ruby_gen_extconf_fix
       cp $f ${f}.orig
       # Patch extconf.rb for cross compile
+      if grep --quiet "require.*'rbconfig'" $f; then
+        sed -i '/'"$(grep "require.*'rbconfig'" $f)"'/r prepend' $f
+      elif grep --quiet "#\!.*ruby" $f; then
+        sed -i '/'"$(grep "#\!.*ruby" $f)"'/r prepend' $f
+      else
+        sed -i '/^/r prepend' $f
+      fi
       cat append >> $f
     fi
   done
