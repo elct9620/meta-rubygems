@@ -87,15 +87,18 @@ RUBY_INSTALL_GEMS ?= "${BPN}-${BPV}.gem"
 RUBY_COMPILE_FLAGS ?= 'LANG="en_US.UTF-8" LC_ALL="en_US.UTF-8"'
 
 ruby_gen_extconf_fix() {
-	cat<<EOF>prepend
-  RbConfig::MAKEFILE_CONFIG['CPPFLAGS'] = ENV['CPPFLAGS'] if ENV['CPPFLAGS']
-  \$CPPFLAGS = ENV['CPPFLAGS'] if ENV['CPPFLAGS']
-  RbConfig::MAKEFILE_CONFIG['CC'] = ENV['CC'] if ENV['CC']
-  RbConfig::MAKEFILE_CONFIG['LD'] = ENV['LD'] if ENV['LD']
-  RbConfig::MAKEFILE_CONFIG['CFLAGS'] = ENV['CFLAGS'] if ENV['CFLAGS']
-  RbConfig::MAKEFILE_CONFIG['CXXFLAGS'] = ENV['CXXFLAGS'] if ENV['CXXFLAGS']
+ 	cat<<EOF>prepend
+  RbConfig::MAKEFILE_CONFIG['CPPFLAGS'] = ENV['CPPFLAGS'].dup if ENV['CPPFLAGS']
+  \$CPPFLAGS = ENV['CPPFLAGS'].dup if ENV['CPPFLAGS']
+  RbConfig::MAKEFILE_CONFIG['CC'] = ENV['CC'].dup if ENV['CC']
+  RbConfig::MAKEFILE_CONFIG['CPP'] = ENV['CPP'].dup if ENV['CPP']
+  RbConfig::MAKEFILE_CONFIG['CXX'] = ENV['CXX'].dup if ENV['CXX']
+  RbConfig::MAKEFILE_CONFIG['LD'] = ENV['LD'].dup if ENV['LD']
+  RbConfig::MAKEFILE_CONFIG['CFLAGS'] = ENV['CFLAGS'].dup + " -I${STAGING_DIR_NATIVE}${includedir}" if ENV['CFLAGS']
+  RbConfig::MAKEFILE_CONFIG['CPPFLAGS'] = ENV['CPPFLAGS'].dup if ENV['CPPFLAGS']
+  RbConfig::MAKEFILE_CONFIG['CXXFLAGS'] = ENV['CXXFLAGS'].dup if ENV['CXXFLAGS']
 EOF
-	sysroot_ruby=${STAGING_INCDIR}/ruby-${RUBY_GEM_VERSION}
+  sysroot_ruby=${STAGING_INCDIR}/ruby-${RUBY_GEM_VERSION}
 	ruby_arch=`ls -1 ${sysroot_ruby} |grep -v ruby |tail -1 2> /dev/null`
 	cat<<EOF>>append
   system("perl -p -i -e 's#^topdir.*#topdir = ${sysroot_ruby}#' Makefile")
@@ -120,7 +123,8 @@ rubygems_do_compile() {
       elif grep --quiet "#\!.*ruby" $f; then
         sed -i '/'"$(grep "#\!.*ruby" $f)"'/r prepend' $f
       else
-        sed -i '/^/r prepend' $f
+        cat prepend > $f
+        cat ${f}.orig >> $f
       fi
       cat append >> $f
     fi
@@ -185,3 +189,4 @@ FILES_${PN} += " \
 FILES_${PN}-doc += " \
         ${libdir}/ruby/gems/${RUBY_GEM_VERSION}/doc \
         "
+DEPENDS_class-native += " zlib-native openssl-native"
