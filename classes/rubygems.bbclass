@@ -108,6 +108,7 @@ EOF
   system("perl -p -i -e 's#^LIBPATH =.*#LIBPATH = -L.#' Makefile")
   system("perl -p -i -e 's#^ldflags  =.*#ldflags  = ${LDFLAGS}#' Makefile")
   system("perl -p -i -e 's#^dldflags =.*#dldflags = ${LDFLAGS}#' Makefile")
+  system("perl -p -i -e 's#-lcrypt #-lcrypto #' Makefile") # Fix glibc removed libcrypt.so
 EOF
 }
 
